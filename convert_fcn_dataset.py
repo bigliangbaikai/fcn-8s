@@ -9,11 +9,13 @@ from vgg import vgg_16
 import six
 import collections
 
-import contextlib2
-
 flags = tf.app.flags
-flags.DEFINE_string('data_dir', '', 'Root directory to raw pet dataset.')
-flags.DEFINE_string('output_dir', '', 'Path to directory to output TFRecords.')
+# flags.DEFINE_string('data_dir', '/home/swing/Documents/data/voc2012/VOCtrainval_11-May-2012/VOCdevkit/VOC2012',
+#                     'Root directory to raw pet dataset.')
+
+flags.DEFINE_string('data_dir', '/Users/zhubin/Documents/ai/data/VOC2012/',
+                    'Root directory to raw pet dataset.')
+flags.DEFINE_string('output_dir', 'output', 'Path to directory to output TFRecords.')
 
 FLAGS = flags.FLAGS
 
@@ -52,12 +54,14 @@ def image2label(im):
 
 
 def dict_to_tf_example(data, label):
+    print(data)
     with open(data, 'rb') as inf:
         encoded_data = inf.read()
     img_label = cv2.imread(label)
     img_mask = image2label(img_label)
     encoded_label = img_mask.astype(np.uint8).tobytes()
     image_name = os.path.split(data)[1].split('.')[0]
+
     height, width = img_label.shape[0], img_label.shape[1]
     if height < vgg_16.default_image_size or width < vgg_16.default_image_size:
         # 保证最后随机裁剪的尺寸
@@ -101,26 +105,29 @@ def read_images_names(root, train=True):
     txt_fname = os.path.join(root, 'ImageSets/Segmentation/', 'train.txt' if train else 'val.txt')
 
     with open(txt_fname, 'r') as f:
-        images = f.read().split()
+        images = f.read().split('\n')
 
     data = []
     label = []
     for fname in images:
-        data.append('%s/JPEGImages/%s.jpg' % (root, fname))
-        label.append('%s/SegmentationClass/%s.png' % (root, fname))
+        if len(fname) > 0:
+            data.append('%s/JPEGImages/%s.jpg' % (root, fname))
+            label.append('%s/SegmentationClass/%s.png' % (root, fname))
     return zip(data, label)
 
 
 def main(_):
     logging.info('Prepare dataset file names')
 
-    train_output_path = os.path.join(FLAGS.output_dir, 'fcn_train.record')
-    val_output_path = os.path.join(FLAGS.output_dir, 'fcn_val.record')
+    train_output_path = os.path.join(FLAGS.output_dir, 'fcn_train.tfrecord')
+    val_output_path = os.path.join(FLAGS.output_dir, 'fcn_val.tfrecord')
 
     train_files = read_images_names(FLAGS.data_dir, True)
     val_files = read_images_names(FLAGS.data_dir, False)
     create_tf_record(train_output_path, train_files)
     create_tf_record(val_output_path, val_files)
+
+    pass
 
 
 if __name__ == '__main__':

@@ -1,2 +1,3 @@
 pydensecrf
 opencv-python
+tensorflow
